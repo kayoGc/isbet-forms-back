@@ -29,4 +29,12 @@ JWT_SECRET=
 
 4 - Rode o comando npm install para instalar depedências
 
-5 - Rode a aplicação com node index.js ou npm run dev
+5 - Rode a aplicação com 
+
+```
+node index.js
+```
+ou
+```
+npm run dev
+```
