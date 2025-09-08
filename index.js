@@ -2,6 +2,7 @@ import connectDb from "./src/config/db.js";
 import express, { json } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import dynamicCorsConfig from "./src/config/cors.js";
 import { config } from "dotenv";
 
 // rotas
@@ -17,7 +18,7 @@ const server = express();
 // ativa middlewares
 server.use(json());
 server.use(cookieParser());
-server.use(cors());
+server.use(cors(dynamicCorsConfig));
 
 try {
     // conecta banco de dados

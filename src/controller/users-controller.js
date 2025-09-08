@@ -50,7 +50,8 @@ export default class UsersController {
             // cria uma cookie http only, que vai guardar o token do jwt
             res.cookie("secretToken", token, {
                 httpOnly: true,
-                sameSite: "strict",
+                sameSite: "None",
+                secure: true,
                 maxAge: 3600000,
             });
 

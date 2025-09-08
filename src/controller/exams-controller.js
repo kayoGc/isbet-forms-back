@@ -51,7 +51,7 @@ export default class ExamsController {
             // passa por cada parametro necessário e checa se esta no body da requisição
             for (const param of postRequiredParams) {
                                 
-                if (!req.body[param]) {
+                if (!req.body[param] && req.body[param] !== false) {
                     missingParams.push(param);
                 }
 
