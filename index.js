@@ -29,6 +29,11 @@ try {
         res.json({ message: "Servidor está funcionando!" });
     });
 
+    // rota para manter o servidor acordado em plataformas como o UptimeRobot
+    server.get("/stay-alive", (req, res) => {
+        res.status(200).send();
+    })
+
     // configura as rotas
     server.use("/exams", examsRoutes);
     server.use("/questions", questionsRoutes);
@@ -36,7 +41,7 @@ try {
 
     // Inicia o servidor
     server.listen(process.env.PORT, () => {
-        console.log(`Servidor está rodando em: http://localhost:${process.env.PORT}`);
+        console.log(`Servidor está rodando na porta: ${process.env.PORT}`);
     });
 } catch (err) {
     console.log("Erro iniciando servidor,", err.message);
