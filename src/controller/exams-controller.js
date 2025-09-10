@@ -2,7 +2,7 @@ import examsModel from "../models/exams-model.js";
 
 const docObj = examsModel;
 
-const postRequiredParams = ["author", "name", "available", "classNum"];
+const postRequiredParams = ["author", "name", "available"];
 
 export default class ExamsController {
 
@@ -15,7 +15,6 @@ export default class ExamsController {
 
             res.status(200).json({ message: "Sucesso pegando todas as provas", result: result });
         } catch (err) {
-
             console.error("Erro ao pegar provas:", err.message);
             res.status(500).json({ message: "Erro interno do servidor ao pegar todas as provas" });
         }

@@ -10,5 +10,6 @@ questionsRoutes.get("/", controller.getAll);
 
 // rotas protegidas
 questionsRoutes.post("/", protectRoute, controller.post);
+questionsRoutes.post("/many", protectRoute, controller.postMany);
 
 export default questionsRoutes;

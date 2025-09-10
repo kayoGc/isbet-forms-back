@@ -5,7 +5,7 @@ const exams = new mongoose.Schema({
     author: String,
     name: String,
     available: Boolean,
-    classNum: Number,
+    // classNum: Number,
     questions: [{ type: mongoose.Schema.Types.ObjectId, ref: "Questions"}]
 });
 
