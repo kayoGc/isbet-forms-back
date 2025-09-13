@@ -98,4 +98,68 @@ export default class ExamsController {
         }
     }
 
+    // vai atualizar um documento
+    async put(req, res) {
+        try {
+            const { id } = req.params;
+
+            if (!id) {
+                throw new Error("400 - Id não enviado");
+            }
+        
+            if (!req.body) {
+                throw new Error("400 - Nenhum dado enviado");
+            }
+
+            let updateData = {};
+            // vai passar por cada entrada do body
+            for (const entry of Object.entries(req.body)) {
+                const key = entry[0];
+                const value = entry[1];
+                
+                // ignora qualquer parametro que não exista no model
+                if (!postRequiredParams.includes(key)) {
+                    continue;
+                }
+
+                updateData[key] = value;
+            }
+
+            // caso não ter achado nenhum parametro presente no model
+            if (Object.keys(updateData).length == 0) {
+                throw new Error("400 - Nenhum dado válido enviado");
+            }
+
+            // faz a atualização
+            const result = await docObj.updateOne({ _id: id }, updateData);
+            
+            // se não achou o documento
+            if (result.matchedCount == 0) {
+                throw new Error("404 - Documento não encontrado")
+            }
+
+            if (result.modifiedCount == 0) {
+                res.status(200).json({ message: "Nenhum dado foi alterado" });
+                return;
+            }
+            
+            res.status(200).json({ message: "Prova atualizada com sucesso" });
+        } catch (err) {
+            // lida com erros
+
+            if (err.message.startsWith("400")) {
+                res.status(400).json({ message: err.message.replace("400 - ", "") });
+                return;
+            }
+
+            if (err.message.startsWith("404")) {
+                res.status(400).json({ message: err.message.replace("404 - ", "") });
+                return;
+            }
+
+            console.error("Erro atualizando prova:", err.message);
+            res.status(500).json({ message: "Erro interno do servidor ao atualizar prova" });
+        }
+    }
+
 }

@@ -11,5 +11,6 @@ examsRoutes.get("/:id", controller.getById);
 
 // rotas protegidas
 examsRoutes.post("/", protectRoute, controller.post);
+examsRoutes.put("/:id", controller.put);
 
 export default examsRoutes;
