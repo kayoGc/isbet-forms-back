@@ -176,4 +176,86 @@ export default class QuestionsController {
             res.status(500).json({ message: "Erro interno do servidor" });
         }
     }
+
+    // vai deletar um documento
+    async delete(req, res) {
+        try {
+            // caso o id não tenha sido enviado
+            if (!req.params || !req.params.id) {
+                throw new Error("400 - Faltando parametro: id");
+            }
+
+            const { id } = req.params;
+
+            // tenta deletar o documento
+            const { deletedCount } = await docObj.deleteOne({ _id: id });
+
+            if (deletedCount === 0) {
+                throw new Error("404 - Questão não encontrada");
+            }
+
+            // indica na resposta que foi deletado
+            res.status(200).send();
+        } catch (err) {
+            // erros 400 - bad request
+            if (err.message.startsWith("400")) {
+                res.status(400).json({ message: err.message.replace("400 - ", "") });
+                return;
+            }
+
+            // erros 404 - not found
+            if (err.message.startsWith("400")) {
+                res.status(404).json({ message: err.message.replace("404 - ", "") });
+                return;
+            }
+
+            console.error("Erro ao deletar questão:", err.message);
+            res.status(500).json({ message: "Erro interno do servidor ao deletar questão" });
+        }
+    }
+
+    // vai deletar mais de um documento de uma vez, baseado em um array de ids
+    async deleteMany(req, res) {
+        try {
+            // se não tiver body
+            if (!req.body) {
+                throw new Error("400 - Nenhum dado foi enviado");
+            }
+
+            // se não tiver o array ids
+            if (!req.body.ids) {
+                throw new Error("400 - Faltando parametro: ids");
+            }
+
+            // vai ser um array contendo os ids dos documentos
+            const { ids } = req.body;
+
+            // tenta deletar os documento
+            const { deletedCount } = await docObj.deleteMany({ _id: { $in: ids } });
+
+            if (deletedCount === 0) {
+                throw new Error("404 - Questão não encontrada");
+            }
+
+            // TODO: analisar se todos os documentos foram deletados
+
+            // indica na resposta que foi deletado
+            res.status(200).send();
+        } catch (err) {
+            // erros 400 - bad request
+            if (err.message.startsWith("400")) {
+                res.status(400).json({ message: err.message.replace("400 - ", "") });
+                return;
+            }
+
+            // erros 404 - not found
+            if (err.message.startsWith("400")) {
+                res.status(404).json({ message: err.message.replace("404 - ", "") });
+                return;
+            }
+
+            console.error("Erro ao deletar questão:", err.message);
+            res.status(500).json({ message: "Erro interno do servidor ao deletar questão" });
+        }
+    }
 }
