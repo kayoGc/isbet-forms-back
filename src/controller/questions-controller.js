@@ -249,13 +249,63 @@ export default class QuestionsController {
             }
 
             // erros 404 - not found
-            if (err.message.startsWith("400")) {
+            if (err.message.startsWith("404")) {
                 res.status(404).json({ message: err.message.replace("404 - ", "") });
                 return;
             }
 
             console.error("Erro ao deletar questão:", err.message);
             res.status(500).json({ message: "Erro interno do servidor ao deletar questão" });
+        }
+    }
+    
+    async put(req, res) {
+        try {
+            // se não tiver body
+            if (!req.body) {
+                throw new Error("400 - Nenhum dado foi enviado");
+            }
+            
+            // se não tiver o array ids
+            if (!req.body.questions) {
+                throw new Error("400 - Faltando parametro: questions");
+            }
+
+            if (req.body.questions.length === 0) {
+                throw new Error("400 - Nenhuma questão mandada para atualização");
+            }
+            
+            const { questions } = req.body;
+
+            // vai guardar varias operações que serão feitas de uma vez
+            let writeOperations = questions.map((question) => {
+                return {
+                    updateOne: {
+                        filter: { _id: question._id},
+                        update: question 
+                    }
+                }
+            });
+
+            // vai tentar realizar todas as operações
+            await docObj.bulkWrite(writeOperations);
+
+            res.status(200).json({ message: "Items atualizados com sucesso." });           
+        } catch (err) {
+            // erros 400 - bad request
+            if (err.message.startsWith("400")) {
+                res.status(400).json({ message: err.message.replace("400 - ", "") });
+                return;
+            }
+        
+            // erros 404 - not found
+            if (err.message.startsWith("404")) {
+                res.status(404).json({ message: err.message.replace("404 - ", "") });
+                return;
+            }
+        
+            console.error("Erro ao deletar questão:", err.message);
+            res.status(500).json({ message: "Erro interno do servidor ao atualizar questão" });
         }
     }
 }

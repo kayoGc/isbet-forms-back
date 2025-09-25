@@ -13,5 +13,6 @@ questionsRoutes.post("/", protectRoute, controller.post);
 questionsRoutes.post("/batch", protectRoute, controller.postMany);
 questionsRoutes.delete("/:id", protectRoute, controller.delete)
 questionsRoutes.delete("/", protectRoute, controller.deleteMany);
+questionsRoutes.put("/", protectRoute, controller.put);
 
 export default questionsRoutes;
