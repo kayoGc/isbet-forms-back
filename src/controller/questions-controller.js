@@ -158,7 +158,7 @@ export default class QuestionsController {
         
             try {
                 // depois de colocar as perguntas vai pegar os ids e colocar na prova que elas pertence
-                await examsModel.updateOne({ _id: examId }, { questions: Object.values(insertedDocs.insertedIds) });
+                await examsModel.updateOne({ _id: examId }, { $push: { questions: { $each: Object.values(insertedDocs.insertedIds) } }  });
             } catch (err) {
                 // TODO: lidar quando não der erro na criação das perguntas mas der erro ao adicionar na prova
             }
@@ -177,45 +177,8 @@ export default class QuestionsController {
         }
     }
 
-    // vai deletar um documento
+    // vai deletar documentos, 1 ou mais
     async delete(req, res) {
-        try {
-            // caso o id não tenha sido enviado
-            if (!req.params || !req.params.id) {
-                throw new Error("400 - Faltando parametro: id");
-            }
-
-            const { id } = req.params;
-
-            // tenta deletar o documento
-            const { deletedCount } = await docObj.deleteOne({ _id: id });
-
-            if (deletedCount === 0) {
-                throw new Error("404 - Questão não encontrada");
-            }
-
-            // indica na resposta que foi deletado
-            res.status(200).send();
-        } catch (err) {
-            // erros 400 - bad request
-            if (err.message.startsWith("400")) {
-                res.status(400).json({ message: err.message.replace("400 - ", "") });
-                return;
-            }
-
-            // erros 404 - not found
-            if (err.message.startsWith("400")) {
-                res.status(404).json({ message: err.message.replace("404 - ", "") });
-                return;
-            }
-
-            console.error("Erro ao deletar questão:", err.message);
-            res.status(500).json({ message: "Erro interno do servidor ao deletar questão" });
-        }
-    }
-
-    // vai deletar mais de um documento de uma vez, baseado em um array de ids
-    async deleteMany(req, res) {
         try {
             // se não tiver body
             if (!req.body) {
@@ -226,21 +189,30 @@ export default class QuestionsController {
             if (!req.body.ids) {
                 throw new Error("400 - Faltando parametro: ids");
             }
+            
+            if (!req.body.examId) {
+                throw new Error("400 - Faltando parametro: examId");
+            }
 
             // vai ser um array contendo os ids dos documentos
-            const { ids } = req.body;
+            const { ids, examId } = req.body;
 
             // tenta deletar os documento
             const { deletedCount } = await docObj.deleteMany({ _id: { $in: ids } });
 
             if (deletedCount === 0) {
-                throw new Error("404 - Questão não encontrada");
+                throw new Error("404 - Questão(ões) não encontrada(s)");
             }
+
+            // vai tirar as questões da prova que elas pertencem
+            await examsModel.updateOne({_id: examId }, { $pullAll: { questions: ids }});
+
+            // TODO: fazer algo se falhar ao apagar as questões do documento exame?
 
             // TODO: analisar se todos os documentos foram deletados
 
             // indica na resposta que foi deletado
-            res.status(200).send();
+            res.status(200).send({ message: "Questão(ões) apaga(s) com sucesso." });
         } catch (err) {
             // erros 400 - bad request
             if (err.message.startsWith("400")) {
