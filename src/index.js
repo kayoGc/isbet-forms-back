@@ -1,14 +1,15 @@
 import connectDb from "./config/db.js";
+import dynamicCorsConfig from "./config/cors.js";
 import express, { json } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
-import dynamicCorsConfig from "./config/cors.js";
 import { config } from "dotenv";
 
 // rotas
 import examsRoutes from "./routes/exams-routes.js";
 import questionsRoutes from "./routes/questions-routes.js";
 import usersRoutes from "./routes/users-routes.js";
+import classRoutes from "./routes/class-routes.js";
 
 // pega variaveis de ambiente do env.local
 config({ path: ".env.local" });
@@ -23,7 +24,7 @@ server.use(cors(dynamicCorsConfig));
 try {
     // conecta banco de dados
     await connectDb();
-    
+
     // rota raiz, avisa que o servidor está funcionando
     server.get("/", (req, res) => {
         res.json({ message: "Servidor está funcionando!" });
@@ -37,12 +38,13 @@ try {
     // configura as rotas
     server.use("/exams", examsRoutes);
     server.use("/questions", questionsRoutes);
-    server.use("/auth", usersRoutes);
+    server.use("/", usersRoutes);
+    server.use("/classes", classRoutes);
 
     // Inicia o servidor
     server.listen(process.env.PORT, () => {
         console.log(`Servidor está rodando na porta: ${process.env.PORT}`);
     });
 } catch (err) {
-    console.log("Erro iniciando servidor,", err.message);
+    console.log("Erro iniciando servidor:", err.message);
 }
