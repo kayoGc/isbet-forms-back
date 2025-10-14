@@ -6,9 +6,7 @@ const controller = new UsersController();
 const usersRoutes = express.Router();
 
 // rotas livres
-usersRoutes.post("/login", controller.login);
-
-// rotas protegidas
-usersRoutes.post("/register", protectRoute, controller.register);
+usersRoutes.get("/users", controller.get);
+usersRoutes.post("/auth/register", protectRoute, controller.register);
 
 export default usersRoutes;

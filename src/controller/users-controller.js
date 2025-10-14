@@ -1,96 +1,74 @@
 import usersModel from "../models/users-model.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import authService from "../services/AuthService.js";
 
 const docObj = usersModel;
 
-const postRequiredParams = ["email", "password", "name", "admin"];
+const postRequiredParams = ["email", "password", "name"];
 
 export default class UsersController {
 
-    // vai logar o usuário
-    async login(req, res) {
+    /**
+     * Vai pegar e retornar dados dos usuários.
+     * A requisição tem os seguintes parametos opcionais:
+     * 
+     * numOfDocs: número de usuários que serão retornados
+     * 
+     * page: qual página será retornada (ajuda no calculo de quantos documentos serão pulados)
+     * 
+     * classId: de qual turma os usuários pertencem, null para os que não tem nenhuma
+     */
+    async get(req, res) {
         try {
-            // se não tiver o body em primeiro lugar cria um erro
-            if (!req.body) {
-                throw new Error("No body");
+            const { numOfDocs, page, classId } = req.query;            
+            let limit = 10;
+            let skip = 0;
+            let filter = {};
+
+            // depedendo dos parametros passados muda a query
+            // se 0 for colocado no limite o mongoDb entende como não tem limite, então impedimos isso
+            if (numOfDocs && numOfDocs !== "0") {
+                limit = parseInt(numOfDocs);                
             }
 
-            // essa parte checa se está faltando algum parametro para criar o documento
-            let missingParams = [];
-            // só vai verificar se tem o email e password
-            const postRequiredParams2 = postRequiredParams.slice(0, 1);
-            // passa por cada parametro necessário e checa se esta no body da requisição
-            for (const param of postRequiredParams2) {
+            if (page) {
+                // vai pular o número de documentos (limit) vezes o número da pagina - 1
+                // exemplo: limit = 10 e page = 1 -> 10 * (1 - 0) = 10 * 0 = 0 => a primeira página pula 0 documentos
+                // exemplo 2: limit = 10 e page = 2 -> 10 * (2 - 1) = 10 * 1 = 10 => a segunda página pula 10 documentos
+                skip = limit * (parseInt(page) - 1);
+            }
 
-                if (!req.body[param]) {
-                    missingParams.push(param);
+            if (classId) {
+                // req.query sempre retorna strings então tem que converter null manualmente
+                if (className === "null") {
+                    filter.class = null;
+                } else {
+                    filter.class = classId;
+                }
+            }
+
+            const uids = await docObj
+                .find(filter, "uid -_id")
+                .skip(skip)
+                .limit(limit)
+                // lean pula algumas etapas do mongoose e reduz o tamanho do objeto retornado
+                .lean();
+
+            let result = [];
+            if (uids.length > 0) {
+                const { success, error, users } = await authService.getUsers(uids);                
+    
+                if (!success) {
+                    throw new Error(error);
                 }
 
+                result = users;
             }
 
-            const { email, password } = req.body; 
-
-            // vai buscar o usuário no banco de dados
-            const userDb = await docObj.findOne({ email: email });
-            
-            // se o usuário não for achado
-            if (!userDb) {
-                throw new Error("404");
-            }
-
-            // vai comparar a senha mandada com a do banco de dados
-            if (!(await bcrypt.compare(password, userDb.password))) {
-                // se a senha não bater
-                throw new Error("401");
-            }
-
-            // cria um token para ser utilizado em rotas que precisam de autenticação
-            let token = jwt.sign({ id: userDb._id }, process.env.JWT_SECRET);
-            // cria uma cookie http only, que vai guardar o token do jwt
-            res.cookie("secretToken", token, {
-                httpOnly: true,
-                sameSite: "None",
-                secure: true,
-                maxAge: 3600000,
-            });
-
-            // manda os dados do usuário de volta
-            let result = {
-                _id: userDb._id,
-                email: userDb.email,
-                name: userDb.name,
-                admin: userDb.admin
-            }
-
-            res.status(200).json({ message: "Usuário logado com sucesso.", result: result });
+            res.json({ result: result });
         } catch (err) {
-            // se estava faltando parametros na requisição manda de volta o codigo 400 (bad request)
-            if (err.message.startsWith("Missing params:")) {
-                res.status(400).json({ message: err.message });
-                return;
-            }
+            console.error(`Erro no UsersController: ${err.message}`);
 
-            // se nenhum dado foi enviado
-            if (err.message == "No body") {
-                res.status(400).json({ message: "No data was sended" });
-                return;
-            }
-
-            // usuário não foi achado, provavelmente não tem conta
-            if (err.message == "404") {
-                res.status(404).json({ message: "Usuário não foi achado" });
-                return;
-            }
-
-            if (err.message == "401") {
-                res.status(401).json({ message: "Credenciais invalídas" });
-                return;
-            }
-
-            console.error("Erro logando Usuário:", err.message);
-            // em caso de erro interno do servidor
-            res.status(500).json({ message: "Erro interno do servidor ao logar usuário" });
+            res.status(500).send();
         }
     }
 
@@ -107,11 +85,9 @@ export default class UsersController {
             let missingParams = [];
             // passa por cada parametro necessário e checa se esta no body da requisição
             for (const param of postRequiredParams) {
-
                 if (!req.body[param]) {
                     missingParams.push(param);
                 }
-
             }
 
             // vai criar um erro se tiver faltando parametros
@@ -127,18 +103,24 @@ export default class UsersController {
 
             // configura os dados
             const { email, password, name, admin } = req.body;
+
+            // cria o usuário no firebase
+            const { success, uid, error} = await authService.createNewUser(email, password, name);
+
+            if (!success) {
+                throw new Error(error.code);
+            }
+
+            // cria um novo usuário
             const user = new docObj({
-                email: email,
-                password: password,
-                name: name,
-                admin: admin
+                uid: uid,
             });
 
             // vai tentar salvar
             await user.save();
 
             // se chegar aqui deu bom
-            res.status(201).json({ message: "Usuário criado com sucesso!" });
+            res.status(201).json({ message: "Usuário criado com sucesso!", userUid: uid });
         } catch (err) {
             // se estava faltando parametros na requisição manda de volta o codigo 400 (bad request)
             if (err.message.startsWith("Missing params:")) {
@@ -152,7 +134,9 @@ export default class UsersController {
             }
 
             // codigo transmitido pelo mongoose para duplicadas
-            if (err.message.startsWith("E11000")) {
+            // if (err.message.startsWith("E11000")) {
+            // codigo transmitido pelo firebase para email já existente
+            if (err.message === "auth/email-already-exists") {
                 res.status(400).json({ message: "Email já tem uma conta." });
                 return;
             }
