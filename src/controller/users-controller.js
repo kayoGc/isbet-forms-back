@@ -19,7 +19,7 @@ export default class UsersController {
      */
     async get(req, res) {
         try {
-            const { numOfDocs, page, classId } = req.query;            
+            const { numOfDocs, page, classId } = req.query;
             let limit = 10;
             let skip = 0;
             let filter = {};
@@ -27,7 +27,7 @@ export default class UsersController {
             // depedendo dos parametros passados muda a query
             // se 0 for colocado no limite o mongoDb entende como não tem limite, então impedimos isso
             if (numOfDocs && numOfDocs !== "0") {
-                limit = parseInt(numOfDocs);                
+                limit = parseInt(numOfDocs);
             }
 
             if (page) {
@@ -39,24 +39,29 @@ export default class UsersController {
 
             if (classId) {
                 // req.query sempre retorna strings então tem que converter null manualmente
-                if (className === "null") {
+                if (classId === "null") {
                     filter.class = null;
                 } else {
                     filter.class = classId;
                 }
             }
 
-            const uids = await docObj
-                .find(filter, "uid -_id")
+            const dbUsers = await docObj
+                .find(filter, "uid _id")
                 .skip(skip)
                 .limit(limit)
                 // lean pula algumas etapas do mongoose e reduz o tamanho do objeto retornado
                 .lean();
 
             let result = [];
-            if (uids.length > 0) {
-                const { success, error, users } = await authService.getUsers(uids);                
-    
+            
+            if (dbUsers.length > 0) {
+                let uids = dbUsers.map((user) => {
+                    return { uid: user.uid }
+                });
+
+                const { success, error, users } = await authService.getUsers(uids);
+
                 if (!success) {
                     throw new Error(error);
                 }
@@ -66,7 +71,7 @@ export default class UsersController {
 
             res.json({ result: result });
         } catch (err) {
-            console.error(`Erro no UsersController: ${err.message}`);
+            console.error(`Erro UsersController->get: ${err.message}`);
 
             res.status(500).send();
         }
@@ -74,38 +79,12 @@ export default class UsersController {
 
     // vai criar um usuário
     async register(req, res) {
-
         try {
-            // se não tiver o body em primeiro lugar cria um erro
-            if (!req.body) {
-                throw new Error("No body");
-            }
-
-            // essa parte checa se está faltando algum parametro para criar o documento
-            let missingParams = [];
-            // passa por cada parametro necessário e checa se esta no body da requisição
-            for (const param of postRequiredParams) {
-                if (!req.body[param]) {
-                    missingParams.push(param);
-                }
-            }
-
-            // vai criar um erro se tiver faltando parametros
-            if (missingParams.length > 0) {
-                let errMsg = "Missing params: ";
-
-                for (const param of missingParams) {
-                    errMsg += `${param} `;
-                }
-
-                throw new Error(errMsg);
-            }
-
             // configura os dados
             const { email, password, name, admin } = req.body;
 
             // cria o usuário no firebase
-            const { success, uid, error} = await authService.createNewUser(email, password, name);
+            const { success, uid, error } = await authService.createNewUser(email, password, name);
 
             if (!success) {
                 throw new Error(error.code);
@@ -114,6 +93,8 @@ export default class UsersController {
             // cria um novo usuário
             const user = new docObj({
                 uid: uid,
+                email: email,
+                name: name
             });
 
             // vai tentar salvar
@@ -122,19 +103,6 @@ export default class UsersController {
             // se chegar aqui deu bom
             res.status(201).json({ message: "Usuário criado com sucesso!", userUid: uid });
         } catch (err) {
-            // se estava faltando parametros na requisição manda de volta o codigo 400 (bad request)
-            if (err.message.startsWith("Missing params:")) {
-                res.status(400).json({ message: err.message });
-                return;
-            }
-
-            if (err.message == "No body") {
-                res.status(400).json({ message: "No data was sended" });
-                return;
-            }
-
-            // codigo transmitido pelo mongoose para duplicadas
-            // if (err.message.startsWith("E11000")) {
             // codigo transmitido pelo firebase para email já existente
             if (err.message === "auth/email-already-exists") {
                 res.status(400).json({ message: "Email já tem uma conta." });
@@ -143,7 +111,35 @@ export default class UsersController {
 
             console.error("Erro criando Usuário:", err.message);
             // em caso de erro interno do servidor
-            res.status(500).json({ message: "Erro interno do servidor ao criar usuário" });
+            res.status(500).send();
+        }
+    }
+
+    /**
+     * Vai atualizar os documentos
+     */
+    async put(req, res) {
+        try {
+            const { users } = req.body;
+
+            // userIds vai ser usado para atualizar a turma
+            let writeOperations = users.map((obj) => {
+                return {
+                    updateOne: {
+                        // procura o documento pelo _id
+                        filter: { _id: obj._id },
+                        update: obj
+                    }
+                }
+            });
+
+            // bulkWrite executa varias operações no DB de uma vez
+            await docObj.bulkWrite(writeOperations);
+
+            res.status(200).send();
+        } catch (err) {
+            console.error("Erro no UsersController:", err.message);
+            res.status(500).send();
         }
     }
 

@@ -5,9 +5,14 @@ import express from 'express';
 
 const controller = new ClassController();
 const classRoutes = express.Router();
-const checkRequestBody = createCheckMd(["name"]);
 
-// rotas livres
-classRoutes.post("/", protectRoute, checkRequestBody, controller.post);
+const checkPost = createCheckMd(['name']);
+const checkPut = createCheckMd({
+    
+});
+
+classRoutes.get("/", controller.get);
+classRoutes.post("/", checkPost, controller.post);
+classRoutes.put("/", checkPut, controller.put);
 
 export default classRoutes;

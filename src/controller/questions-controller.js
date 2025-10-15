@@ -3,8 +3,6 @@ import examsModel from "../models/exams-model.js";
 
 const docObj = questionsModel;
 
-const postRequiredParams = ["question", "type", "options", "correct", "exam"];
-
 export default class QuestionsController {
 
     // metodo get que vai pegar todos os documentos
@@ -13,47 +11,19 @@ export default class QuestionsController {
             // tenta pegar todos os documentos do model
             const result = await docObj.find({});
 
-            res.status(200).json({ message: "Sucesso pegando todas as questões", result: result });
+            res.status(200).json({ result: result });
         } catch (err) {
 
-            console.error("Erro ao pegar questões:", err.message);
-            res.status(500).json({ message: "Erro interno do servidor ao pegar todas as questões" });
+            console.error("Erro QuestionController->getAll:", err.message);
+            res.status(500).send();
         }
     }
 
     // metodo post que vai postar um documento
     async post(req, res) {
         try {
-
-            // se não tiver o body em primeiro lugar cria um erro
-            if (!req.body) {
-                throw new Error("No body");
-            }
-            
-            // essa parte checa se está faltando algum parametro para criar o documento
-            let missingParams = [];
-            // passa por cada parametro necessário e checa se esta no body da requisição
-            for (const param of postRequiredParams) {
-                                
-                if (!req.body[param]) {
-                    missingParams.push(param);
-                }
-
-            }
-            
-            // vai criar um erro se tiver faltando parametros
-            if (missingParams.length > 0) {
-                let errMsg = "Missing params: ";
-
-                for (const param of missingParams) {
-                    errMsg += `${param} `;
-                }
-
-                throw new Error(errMsg);
-            }   
-
-            // configura o documento
             const { question, type, options, correct, exam } = req.body;
+            
             const doc = new docObj({
                 question: question,
                 type: type,
@@ -61,88 +31,29 @@ export default class QuestionsController {
                 correct: correct,
                 exam: exam
             });
-            // tenta salvar no banco de dados
+            
             const result = await doc.save();
 
-            // depois de colocar uma pergunta vai pegar o id e colocar na prova que ele pertence
-            const fatherExam = await examsModel.findById(exam);
-            fatherExam.questions.push(result._id);
-            await examsModel.updateOne(fatherExam);
+            await examsModel.updateOne(
+                { _id: exam }, 
+                { $push: { questions: result.id } }
+            );
 
-            // manda uma mensagem de sucesso se deu tudo certo
-            res.status(200).json({ message: "Questão criada com sucesso.", result: result });
+            res.status(200).json({ result: result });
         } catch (err) {
-            // se estava faltando parametros na requisição manda de volta o codigo 400 (bad request)
-            if (err.message.startsWith("Missing params:")) {
-                res.status(400).json({ message: err.message });
-                return;
-            }
 
-            if (err.message == "No body") {
-                res.status(400).json({ message: "No data was sended" });
-                return;
-            }
-
-            console.error("Erro criando questão:", err.message);
-            // em caso de erro interno do servidor
-            res.status(500).json({ message: "Erro interno do servidor ao criar questão" });
+            console.error("Erro QuestionController->post:", err.message);
+            res.status(500).send();
         }
     }
 
     // metodo post que vai postar varios documentos
     async postMany(req, res) {
-        try {
-            // se não tiver o body em primeiro lugar cria um erro
-            if (!req.body) {
-                throw new Error("400 - No data was sended");
-            }
-
-            // validações no array de documentos
-            if (!req.body.questions) {
-                throw new Error("400 - Missing data: questions");
-            }
-                       
+        try {          
             const { questions } = req.body;
- 
-            if (!Array.isArray(questions)) {
-                throw new Error("400 - Questions must be an array");
-            }
-
-            if (questions.length === 0) {
-                throw new Error("400 - Questions array is empty");
-            }
 
             let examId = null;
-            // passa por todos os documentos e analisa se possuem os parametros necessários
-            questions.forEach((question, index) => {
-
-                // Verifica se cada questão é um objeto
-                if (typeof question !== 'object') {
-                    throw new Error(`400 - Invalid data type in the question ${index + 1}`); 
-                }
-
-                // essa parte checa se está faltando algum parametro para criar os documentos
-                let missingParams = [];
-                // passa por cada parametro necessário e checa se esta no body da requisição
-                for (const param of postRequiredParams) {
-                                    
-                    if (!question[param]) {
-                        missingParams.push(param);
-                    }
-    
-                }
-
-                // vai criar um erro se tiver faltando parametros
-                if (missingParams.length > 0) {
-                    let errMsg = `400 - Missing data in question ${index + 1}: `;
-    
-                    for (const param of missingParams) {
-                        errMsg += `${param} `;
-                    }
-    
-                    throw new Error(errMsg);
-                }   
-
+            questions.forEach((question) => {
                 // guarda o id do exame para depois adicionar as questões nele
                 if (!examId) {
                     examId = question.exam;
@@ -158,12 +69,15 @@ export default class QuestionsController {
         
             try {
                 // depois de colocar as perguntas vai pegar os ids e colocar na prova que elas pertence
-                await examsModel.updateOne({ _id: examId }, { $push: { questions: { $each: Object.values(insertedDocs.insertedIds) } }  });
+                await examsModel.updateOne(
+                    { _id: examId }, 
+                    { $push: { questions: { $each: Object.values(insertedDocs.insertedIds)}}}
+                );
             } catch (err) {
                 // TODO: lidar quando não der erro na criação das perguntas mas der erro ao adicionar na prova
             }
             
-            res.status(200).json({ message: "Sucesso inserindo multiplas questões" });
+            res.status(200).send();
         } catch (err) {
 
             // erros 400 - bad request
@@ -172,29 +86,14 @@ export default class QuestionsController {
                 return;
             }
             
-            console.error("Erro ao inserir multiplas questões:", err.message);
-            res.status(500).json({ message: "Erro interno do servidor" });
+            console.error("Erro QuestionController->postMany:", err.message);
+            res.status(500).send();
         }
     }
 
     // vai deletar documentos, 1 ou mais
     async delete(req, res) {
         try {
-            // se não tiver body
-            if (!req.body) {
-                throw new Error("400 - Nenhum dado foi enviado");
-            }
-
-            // se não tiver o array ids
-            if (!req.body.ids) {
-                throw new Error("400 - Faltando parametro: ids");
-            }
-            
-            if (!req.body.examId) {
-                throw new Error("400 - Faltando parametro: examId");
-            }
-
-            // vai ser um array contendo os ids dos documentos
             const { ids, examId } = req.body;
 
             // tenta deletar os documento
@@ -212,41 +111,21 @@ export default class QuestionsController {
             // TODO: analisar se todos os documentos foram deletados
 
             // indica na resposta que foi deletado
-            res.status(200).send({ message: "Questão(ões) apaga(s) com sucesso." });
+            res.status(200).send();
         } catch (err) {
-            // erros 400 - bad request
-            if (err.message.startsWith("400")) {
-                res.status(400).json({ message: err.message.replace("400 - ", "") });
-                return;
-            }
-
             // erros 404 - not found
             if (err.message.startsWith("404")) {
                 res.status(404).json({ message: err.message.replace("404 - ", "") });
                 return;
             }
 
-            console.error("Erro ao deletar questão:", err.message);
-            res.status(500).json({ message: "Erro interno do servidor ao deletar questão" });
+            console.error("Erro QuestionController->delete:", err.message);
+            res.status(500).send();
         }
     }
     
     async put(req, res) {
         try {
-            // se não tiver body
-            if (!req.body) {
-                throw new Error("400 - Nenhum dado foi enviado");
-            }
-            
-            // se não tiver o array ids
-            if (!req.body.questions) {
-                throw new Error("400 - Faltando parametro: questions");
-            }
-
-            if (req.body.questions.length === 0) {
-                throw new Error("400 - Nenhuma questão mandada para atualização");
-            }
-            
             const { questions } = req.body;
 
             // vai guardar varias operações que serão feitas de uma vez
@@ -262,22 +141,10 @@ export default class QuestionsController {
             // vai tentar realizar todas as operações
             await docObj.bulkWrite(writeOperations);
 
-            res.status(200).json({ message: "Items atualizados com sucesso." });           
+            res.status(200).send();           
         } catch (err) {
-            // erros 400 - bad request
-            if (err.message.startsWith("400")) {
-                res.status(400).json({ message: err.message.replace("400 - ", "") });
-                return;
-            }
-        
-            // erros 404 - not found
-            if (err.message.startsWith("404")) {
-                res.status(404).json({ message: err.message.replace("404 - ", "") });
-                return;
-            }
-        
-            console.error("Erro ao deletar questão:", err.message);
-            res.status(500).json({ message: "Erro interno do servidor ao atualizar questão" });
+            console.error("Erro QuestionController->put:", err.message);
+            res.status(500).send();
         }
     }
 }
