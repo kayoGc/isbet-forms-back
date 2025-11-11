@@ -127,7 +127,7 @@ export default class UsersController {
                 return {
                     updateOne: {
                         // procura o documento pelo _id
-                        filter: { _id: obj._id },
+                        filter: { uid: obj.uid },
                         update: obj
                     }
                 }

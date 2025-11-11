@@ -8,10 +8,14 @@ const checkRegister = createCheckMd({
     name: "string",
     password: "string",
     email: "string"
-})
+});
+const checkPut = createCheckMd({
+    users: []
+});
 
 // rotas livres
 usersRoutes.get("/users", controller.get);
+usersRoutes.put("/users", checkPut, controller.put);
 usersRoutes.post("/auth/register", checkRegister, controller.register);
 
 export default usersRoutes;

@@ -16,7 +16,7 @@ export default class ClassController {
             let filter = {};
 
             // se 0 for colocado no limite o mongoDb entende como não tem limite, então impedimos isso
-            if (numOfDocs && numOfDocs !== "0") {
+            if (numOfDocs) {
                 limit = parseInt(numOfDocs);
             }
 

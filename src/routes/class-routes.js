@@ -6,7 +6,9 @@ import express from 'express';
 const controller = new ClassController();
 const classRoutes = express.Router();
 
-const checkPost = createCheckMd(['name']);
+const checkPost = createCheckMd({
+    'name': 'string'
+});
 const checkPut = createCheckMd({
     
 });
