@@ -40,6 +40,8 @@ export const createCheckMd = (requiredData) => {
                     errMsg += ` ${key} deve ser ${type} |`;
                 }
             }
+
+            console.log(errMsg, req.body);
     
             if (errMsg !== '') {
                 // formata mensagem, tira ultimo '|' e os espaços no começo e fim

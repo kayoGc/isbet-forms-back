@@ -77,6 +77,24 @@ export default class UsersController {
         }
     }
 
+    // metodo get que vai pegar um documento especifico
+    async getByUid(req, res) {
+        try {
+            const { uid } = req.params;
+
+            // tenta pegar o documento
+            const result = await docObj
+                .find({ uid: uid })
+                .lean()
+
+            res.status(200).json({ result: result });
+        } catch (err) {
+
+            console.error("Erro UsersController->getById:", err.message);
+            res.status(500).send();
+        }
+    }
+
     // vai criar um usuário
     async register(req, res) {
         try {

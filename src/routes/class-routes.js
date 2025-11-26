@@ -13,8 +13,8 @@ const checkPut = createCheckMd({
     
 });
 
-classRoutes.get("/", controller.get);
-classRoutes.post("/", checkPost, controller.post);
-classRoutes.put("/", checkPut, controller.put);
+classRoutes.get("/", protectRoute, controller.get);
+classRoutes.post("/", protectRoute, checkPost, controller.post);
+classRoutes.put("/", protectRoute, checkPut, controller.put);
 
 export default classRoutes;

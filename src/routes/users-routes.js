@@ -1,6 +1,7 @@
 import UsersController from "../controller/users-controller.js";
 import { createCheckMd } from "../middlewares/check-params.js";
 import express from 'express';
+import protectRoute from "../middlewares/protect-route.js";
 
 const controller = new UsersController();
 const usersRoutes = express.Router();
@@ -14,8 +15,9 @@ const checkPut = createCheckMd({
 });
 
 // rotas livres
-usersRoutes.get("/users", controller.get);
-usersRoutes.put("/users", checkPut, controller.put);
-usersRoutes.post("/auth/register", checkRegister, controller.register);
+usersRoutes.get("/users", protectRoute, controller.get);
+usersRoutes.get("/users/:uid", protectRoute, controller.getByUid);
+usersRoutes.put("/users", protectRoute, checkPut, controller.put);
+usersRoutes.post("/auth/register", protectRoute, checkRegister, controller.register);
 
 export default usersRoutes;

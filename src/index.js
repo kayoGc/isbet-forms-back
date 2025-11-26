@@ -10,6 +10,8 @@ import examsRoutes from "./routes/exams-routes.js";
 import questionsRoutes from "./routes/questions-routes.js";
 import usersRoutes from "./routes/users-routes.js";
 import classRoutes from "./routes/class-routes.js";
+import activeRoutes from "./routes/active-routes.js";
+import answersRoutes from "./routes/answers-routes.js";
 
 // pega variaveis de ambiente do env.local
 config({ path: ".env.local" });
@@ -40,6 +42,8 @@ try {
     server.use("/questions", questionsRoutes);
     server.use("/", usersRoutes);
     server.use("/classes", classRoutes);
+    server.use("/active", activeRoutes);
+    server.use("/answers", answersRoutes);
 
     // Inicia o servidor
     server.listen(process.env.PORT, () => {

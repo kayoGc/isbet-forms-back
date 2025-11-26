@@ -6,9 +6,9 @@ import { createCheckMd } from "../middlewares/check-params.js"
 const examsRoutes = express.Router();
 const controller = new ExamsController();
 const checkPost = createCheckMd({
-    author: "string",
+    // author: "string",
     name: "string",
-    available: "boolean",
+    // available: "boolean",
 });
 // o middleware check sem nada pelo menos checa se tem o body
 const checkPut = createCheckMd({});
