@@ -18,6 +18,6 @@ const checkPut = createCheckMd({
 usersRoutes.get("/users", protectRoute, controller.get);
 usersRoutes.get("/users/:uid", protectRoute, controller.getByUid);
 usersRoutes.put("/users", protectRoute, checkPut, controller.put);
-usersRoutes.post("/auth/register", protectRoute, checkRegister, controller.register);
+usersRoutes.post("/auth/register", checkRegister, controller.register);
 
 export default usersRoutes;
