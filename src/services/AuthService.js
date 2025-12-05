@@ -68,7 +68,17 @@ class AuthService {
         } catch (err) {
             return { success: false, error: `AuthService error: ${err.message}`};
         }
+        
+    }
+    
+    async turnIntoAdmin(uid) {
+        try {
+            await this.auth.setCustomUserClaims(uid, { admin: true });
 
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: `AuthService error: ${err.message}`};
+        }
     }
 }
 

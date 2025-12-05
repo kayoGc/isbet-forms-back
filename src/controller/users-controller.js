@@ -54,7 +54,7 @@ export default class UsersController {
                 .lean();
 
             let result = [];
-            
+
             if (dbUsers.length > 0) {
                 let uids = dbUsers.map((user) => {
                     return { uid: user.uid }
@@ -161,4 +161,23 @@ export default class UsersController {
         }
     }
 
+    /**
+     * Vai controlar quem são os admins da aplicação
+     */
+    async putAdminStatus(req, res) {
+        try {
+            const { userUid } = req.body;
+        
+            const { success, error } = await authService.turnIntoAdmin(userUid);
+
+            if (!success) {
+                throw new Error(error);
+            }
+
+            res.status(200).send();
+        } catch (err) {
+            console.error("Erro no UsersController:", err.message);
+            res.status(500).send();
+        }
+    }
 }
