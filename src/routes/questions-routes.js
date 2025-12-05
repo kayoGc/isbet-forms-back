@@ -1,7 +1,7 @@
 import express from "express";
 import QuestionsController from "../controller/questions-controller.js"
-import protectRoute from "../middlewares/protect-route.js";
 import { createCheckMd } from "../middlewares/check-params.js";
+import { protectRouteAdmin, protectRoute } from "../middlewares/protect-route.js";
 
 const questionsRoutes = express.Router();
 const controller = new QuestionsController();
@@ -28,13 +28,13 @@ const checkPut = createCheckMd({
     questions: []
 });
 
-// rotas livres
-questionsRoutes.get("/", controller.getAll);
+// normal user
+questionsRoutes.get("/", protectRoute, controller.getAll);
 
-// rotas protegidas
-questionsRoutes.post("/", protectRoute, checkPost, controller.post);
-questionsRoutes.post("/batch", protectRoute, checkPostMany, controller.postMany);
-questionsRoutes.delete("/", protectRoute, checkDelete, controller.delete)
-questionsRoutes.put("/", protectRoute, checkPut, controller.put);
+// admin 
+questionsRoutes.post("/", protectRouteAdmin, checkPost, controller.post);
+questionsRoutes.post("/batch", protectRouteAdmin, checkPostMany, controller.postMany);
+questionsRoutes.delete("/", protectRouteAdmin, checkDelete, controller.delete)
+questionsRoutes.put("/", protectRouteAdmin, checkPut, controller.put);
 
 export default questionsRoutes;

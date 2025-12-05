@@ -1,6 +1,6 @@
 import ClassController from '../controller/class-controller.js';
 import { createCheckMd } from '../middlewares/check-params.js';
-import protectRoute from "../middlewares/protect-route.js";
+import { protectRouteAdmin, protectRoute } from '../middlewares/protect-route.js';
 import express from 'express';
 
 const controller = new ClassController();
@@ -13,8 +13,11 @@ const checkPut = createCheckMd({
     
 });
 
+// normal user
 classRoutes.get("/", protectRoute, controller.get);
-classRoutes.post("/", protectRoute, checkPost, controller.post);
-classRoutes.put("/", protectRoute, checkPut, controller.put);
+
+// admin
+classRoutes.post("/", protectRouteAdmin, checkPost, controller.post);
+classRoutes.put("/", protectRouteAdmin, checkPut, controller.put);
 
 export default classRoutes;
